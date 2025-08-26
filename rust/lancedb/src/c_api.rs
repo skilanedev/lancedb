@@ -1,8 +1,8 @@
 // rust/lancedb/src/c_api.rs
-// Version: v1.18
-// Date: 2025-08-24
+// Version: v1.20
+// Date: 2025-08-25
 // Author: Grok (assisted modeling)
-// Description: Updated C API for Swift FFI. Fixed import for LineDelimited by using arrow_json::writer::LineDelimited (addresses E0432). Removed unused arrow_json_writer alias per warning. Builds on v1.17 for iDevMac integration.
+// Description: Updated C API for Swift FFI. Removed unnecessary 'mut' from boxed allocation in lance_query_knn to fix unused_mut warning. Builds on v1.19 for clean compilation.
 
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_float};
@@ -39,6 +39,13 @@ const DIST_COL: &str = "_distance";
 pub enum LanceErrorCode {
     Success = 0,
     Failure = -1,
+}
+
+// MARK: - KNN Result Struct (replaces tuple for cbindgen compatibility)
+#[repr(C)]
+pub struct LanceKnnResult {
+    id: u64,
+    distance: c_float,
 }
 
 // MARK: - Opaque Pointer Types (for Swift)
@@ -150,10 +157,10 @@ pub extern "C" fn lance_add_batch(table: LanceTablePtr, batch_ptr: *const u8, le
 // MARK: - Query Operations
 /// Queries nearest neighbors for a vector (blocks on async).
 /// Vector is f32 array, dim is dimension, k is limit.
-/// Returns pointer to result array (id, distance pairs) or null; out_count is number of results.
+/// Returns pointer to result array of LanceKnnResult or null; out_count is number of results.
 /// Caller must free with lance_free_results.
 #[no_mangle]
-pub extern "C" fn lance_query_knn(table: LanceTablePtr, vector: *const c_float, dim: c_int, k: c_int, out_count: *mut c_int) -> *mut (u64, c_float) {
+pub extern "C" fn lance_query_knn(table: LanceTablePtr, vector: *const c_float, dim: c_int, k: c_int, out_count: *mut c_int) -> *mut LanceKnnResult {
     let table = unsafe { if table.is_null() { return ptr::null_mut(); } &*table };
     let vec_slice = unsafe { std::slice::from_raw_parts(vector, dim as usize) };
     let query_builder = table.query();
@@ -170,24 +177,27 @@ pub extern "C" fn lance_query_knn(table: LanceTablePtr, vector: *const c_float, 
         Ok(batches) => batches,
         Err(_) => return ptr::null_mut(),
     };
-    let mut result_vec: Vec<(u64, c_float)> = Vec::new();
+    let mut result_vec: Vec<LanceKnnResult> = Vec::new();
     for batch in results {
         let ids = batch.column_by_name(ROW_ID).unwrap().as_primitive_opt::<UInt64Type>().unwrap();
         let dists = batch.column_by_name(DIST_COL).unwrap().as_primitive_opt::<Float32Type>().unwrap();
         for i in 0..batch.num_rows() {
-            result_vec.push((ids.value(i), dists.value(i)));
+            result_vec.push(LanceKnnResult {
+                id: ids.value(i),
+                distance: dists.value(i),
+            });
         }
     }
     unsafe { *out_count = result_vec.len() as c_int; }
     let boxed = Box::new(result_vec);
-    Box::into_raw(boxed) as *mut (u64, c_float)
+    Box::into_raw(boxed).cast::<LanceKnnResult>()
 }
 
 /// Frees a KNN results pointer.
 #[no_mangle]
-pub extern "C" fn lance_free_results(results: *mut (u64, c_float)) {
+pub extern "C" fn lance_free_results(results: *mut LanceKnnResult) {
     if !results.is_null() {
-        unsafe { let _ = Box::from_raw(results as *mut Vec<(u64, c_float)>); }
+        unsafe { let _ = Box::from_raw(results as *mut Vec<LanceKnnResult>); }
     }
 }
 

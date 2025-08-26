@@ -14,10 +14,11 @@ rust-version.workspace = true
 arrow = { workspace = true }
 arrow-array = { workspace = true }
 arrow-data = { workspace = true }
-arrow-schema = { workspace = true }
+arrow-schema = { workspace = true, features = ["serde"] }  # Added "serde" feature for Schema Deserialize impl in c_api.rs
 arrow-ord = { workspace = true }
 arrow-cast = { workspace = true }
 arrow-ipc.workspace = true
+arrow-json = "55.1.0"
 chrono = { workspace = true }
 datafusion-catalog.workspace = true
 datafusion-common.workspace = true
@@ -141,3 +142,6 @@ name = "ivf_pq"
 [[example]]
 name = "hybrid_search"
 required-features = ["sentence-transformers"]
+
+[lib]
+crate-type = ["staticlib"]

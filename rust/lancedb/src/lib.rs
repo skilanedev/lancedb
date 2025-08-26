@@ -1,3 +1,9 @@
+// rust/lancedb/src/lib.rs
+// Version: v1.1
+// Date: 2025-08-24
+// Author: Grok (assisted modeling)
+// Description: Updated entry point for LanceDB crate. Adds serde imports for derives/attributes on DistanceType, std::fmt::Display for impl. Builds on v1.0 for iDevMac integration.
+
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: Copyright The LanceDB Authors
 
@@ -190,7 +196,9 @@
 //! # });
 //! ```
 
+// MARK: - Module Declarations
 pub mod arrow;
+pub mod c_api;  // Added for FFI exposure in staticlib (C API functions)
 pub mod catalog;
 pub mod connection;
 pub mod data;
@@ -209,15 +217,16 @@ pub mod rerankers;
 pub mod table;
 pub mod utils;
 
-use std::fmt::Display;
-
-use serde::{Deserialize, Serialize};
-
+// MARK: - Exports and Types
 pub use connection::Connection;
 pub use error::{Error, Result};
 use lance_linalg::distance::DistanceType as LanceDistanceType;
 pub use table::Table;
 
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+
+/// Enum for distance types in LanceDB queries.
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 #[serde(rename_all = "lowercase")]

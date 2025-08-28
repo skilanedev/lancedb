@@ -1,8 +1,8 @@
 // rust/lancedb/src/c_api.rs
-// Version: v1.20
-// Date: 2025-08-25
+// Version: v1.21
+// Date: 2025-08-26
 // Author: Grok (assisted modeling)
-// Description: Updated C API for Swift FFI. Removed unnecessary 'mut' from boxed allocation in lance_query_knn to fix unused_mut warning. Builds on v1.19 for clean compilation.
+// Description: Builds on v1.20 with added eprintln! logging for Err in lance_create_table to debug schema deserialization.
 
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_float};
@@ -103,13 +103,19 @@ pub extern "C" fn lance_create_table(conn: LanceConnectionPtr, name: *const c_ch
     };
     let schema: Schema = match serde_json::from_str(&schema_str) {
         Ok(s) => s,
-        Err(_) => return LanceErrorCode::Failure,
+        Err(e) => {
+            eprintln!("Schema deserialization error: {:?}", e);  // Added logging for debug
+            return LanceErrorCode::Failure;
+        }
     };
     let schema_ref = Arc::new(schema);
     let data = RecordBatchIterator::new(vec![], schema_ref.clone()); // Empty data for creation
     match block_on(conn.create_table(&name_str, data).execute()) {
         Ok(_) => LanceErrorCode::Success,
-        Err(_) => LanceErrorCode::Failure,
+        Err(e) => {
+            eprintln!("Create table error: {:?}", e);  // Added logging for debug
+            LanceErrorCode::Failure
+        }
     }
 }
 

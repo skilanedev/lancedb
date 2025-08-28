@@ -49,6 +49,7 @@ moka = { version = "0.12", features = ["future"] }
 object_store = "0.12.0"
 pin-project = "1.0.7"
 snafu = "0.8"
+uniffi = "0.29.4"  # Updated to latest available version on crates.io (0.30.0 does not exist)
 url = "2"
 num-traits = "0.2"
 rand = "0.9"

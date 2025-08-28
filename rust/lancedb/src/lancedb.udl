@@ -1,0 +1,89 @@
+namespace lancedb {
+
+enum TimeUnit {
+    Second;
+    Millisecond;
+    Microsecond;
+    Nanosecond;
+}
+
+enum IntervalUnit {
+    YearMonth;
+    DayTime;
+    MonthDayNano;
+}
+
+enum UnionMode {
+    Sparse;
+    Dense;
+}
+
+dictionary UnionFields {
+    sequence<i32> type_ids;
+    sequence<Field> fields;
+}
+
+[Enum]
+interface DataType {
+    Null();
+    Boolean();
+    Int8();
+    Int16();
+    Int32();
+    Int64();
+    UInt8();
+    UInt16();
+    UInt32();
+    UInt64();
+    Float16();
+    Float32();
+    Float64();
+    Utf8();
+    LargeUtf8();
+    Binary();
+    LargeBinary();
+    FixedSizeBinary(i32 size);
+    Decimal128(u32 precision, i32 scale);
+    Decimal256(u32 precision, i32 scale);
+    Date32();
+    Date64();
+    Time32(TimeUnit unit);
+    Time64(TimeUnit unit);
+    Timestamp(TimeUnit unit, optional<string> timezone);
+    Interval(IntervalUnit unit);
+    Duration(TimeUnit unit);
+    Dictionary(DataType key, DataType value);
+    List(Field field);
+    LargeList(Field field);
+    FixedSizeList(Field field, i32 size);
+    Struct(sequence<Field> fields);
+    Union(UnionFields fields, UnionMode mode);
+    RunEndEncoded(Field run_end, Field value);
+    Map(Field field, boolean sorted);
+    Extension(string name, DataType inner, optional<string> metadata);
+}
+
+dictionary Field {
+    string name;
+    DataType data_type;
+    boolean nullable;
+    i64 dict_id = 0;
+    boolean dict_is_ordered = false;
+    dictionary<string, string> metadata;
+}
+
+dictionary Schema {
+    sequence<Field> fields;
+    dictionary<string, string> metadata;
+}
+
+[Error]
+error LanceError {
+    string message;
+}
+
+[Async]
+interface Database {
+    constructor(string uri) raises (LanceError);
+    [Async] void createTable(string name, Schema schema) raises (LanceError);
+}

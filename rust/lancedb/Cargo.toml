@@ -76,6 +76,7 @@ candle-transformers = { version = "0.9.1", optional = true }
 candle-nn = { version = "0.9.1", optional = true }
 tokenizers = { version = "0.19.1", optional = true }
 semver = { workspace = true }
+uniffi = { workspace = true, features = ["build", "cli"] }  # Added for UniFFI POC (hybrid bindings)
 
 # For a workaround, see workspace Cargo.toml
 crunchy.workspace = true
@@ -118,6 +119,11 @@ sentence-transformers = [
     "dep:tokenizers",
 ]
 
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+
+
 [[example]]
 name = "openai"
 required-features = ["openai"]
@@ -144,4 +150,4 @@ name = "hybrid_search"
 required-features = ["sentence-transformers"]
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "cdylib"]  # Added "cdylib" for UniFFI shared lib compatibility (optional for static XCFramework but enables testing)
